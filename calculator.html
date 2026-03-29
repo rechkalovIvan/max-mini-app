@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://i.ibb.co">
+    <script src="https://st.max.ru/js/max-web-app.js"></script>
 
     <title>Дом Чистоты — Калькулятор</title>
     <meta name="description" content="Рассчитайте стоимость химчистки вашей мебели за пару кликов в нашем удобном калькуляторе.">
@@ -664,10 +665,10 @@
                 </div>
                 <div class="total-price" id="totalPrice" data-val="0">0 <span>руб.</span></div>
             </div>
-            <!-- <div class="btn-wrapper" style="display: none;">
+            <div class="btn-wrapper" id="checkoutBtnWrapper" style="display: none;">
                 <div class="btn-glow" id="btnGlow"></div>
-                <button class="action-btn">Оформить</button>
-            </div> -->
+                <button class="action-btn" onclick="handleCheckout()">Оформить</button>
+            </div>
         </div>
     </div>
 
@@ -874,12 +875,16 @@
 
             // Set active states
             const bottomBar = document.getElementById('bottomBar');
+            const btnWrapper = document.getElementById('checkoutBtnWrapper');
             const btnGlow = document.getElementById('btnGlow');
+            
             if (totalPortions > 0 || totalStains > 0) {
                 bottomBar.classList.add('has-items');
+                if (btnWrapper) btnWrapper.style.display = 'block';
                 if (btnGlow) btnGlow.style.opacity = '1';
             } else {
                 bottomBar.classList.remove('has-items');
+                if (btnWrapper) btnWrapper.style.display = 'none';
                 if (btnGlow) btnGlow.style.opacity = '0';
             }
         }
@@ -905,8 +910,62 @@
             window.requestAnimationFrame(step);
         }
 
+        async function handleCheckout() {
+            // Collect selected items
+            let message = "Хочу почистить:\n";
+            let hasItems = false;
+
+            items.forEach(item => {
+                if (item.count > 0) {
+                    message += `• ${item.name} — ${item.count} шт.\n`;
+                    hasItems = true;
+                }
+            });
+
+            const customVal = parseFloat(document.getElementById('customArea').value);
+            if (!isNaN(customVal) && customVal > 0) {
+                message += `• Ковер/покрытие — ${customVal} м²\n`;
+                hasItems = true;
+            }
+
+            stains.forEach(item => {
+                if (item.count > 0) {
+                    message += `• Пятновыводитель (${item.name}) — ${item.count} шт.\n`;
+                    hasItems = true;
+                }
+            });
+
+            if (!hasItems) {
+                alert("Пожалуйста, выберите хотя бы одну позицию.");
+                return;
+            }
+
+            // Haptic feedback for button click
+            if (window.WebApp && window.WebApp.HapticFeedback) {
+                window.WebApp.HapticFeedback.impactOccurred('medium');
+            }
+
+            // Variant A: Share content
+            if (window.WebApp && window.WebApp.shareMaxContent) {
+                try {
+                    await window.WebApp.shareMaxContent({ text: message });
+                } catch (e) {
+                    console.error("Share failed", e);
+                }
+            } else {
+                // Fallback for browser testing
+                console.log("MAX Bridge not available. Message content:\n", message);
+                alert("Функция отправки доступна только внутри мобильного приложения MAX.");
+            }
+        }
+
         // Initialize App
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            if (window.WebApp) {
+                window.WebApp.ready();
+            }
+        });
     </script>
 </body>
 
